@@ -24,6 +24,7 @@ import Ground from "@arcgis/core/Ground";
 import TileLayer from "@arcgis/core/layers/TileLayer";
 import ElevationLayer from "@arcgis/core/layers/ElevationLayer";
 import SceneLayer from "@arcgis/core/layers/SceneLayer";
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Multipoint from "@arcgis/core/geometry/Multipoint";
 import type Polygon from "@arcgis/core/geometry/Polygon";
@@ -36,6 +37,7 @@ import * as geodeticAreaOperator from "@arcgis/core/geometry/operators/geodeticA
 
 import {
   BATIMENTS_URL,
+  BATIMENTS_ENTITES_URL,
   CLASSES_HAUTEUR,
   COULEUR_BLANC,
   GRIS_URL,
@@ -113,6 +115,9 @@ const batiments = new SceneLayer({
     ],
   } as any,
 });
+
+/** Couche d'entités multipatch, utilisée uniquement pour l'export (non affichée). */
+const batimentsEntites = new FeatureLayer({ url: BATIMENTS_ENTITES_URL });
 
 const sol = new Ground({ layers: [new ElevationLayer({ url: TERRAIN_URL })] });
 const zoneLayer = new GraphicsLayer({ title: "Zone", elevationInfo: { mode: "on-the-ground" } });
@@ -332,7 +337,7 @@ $("btn-exporter").addEventListener("click", async () => {
   try {
     const { fichier, nbBatiments } = await construireMaquette({
       zone,
-      batiments,
+      batiments: batimentsEntites,
       sol,
       mode,
       avecTerrain: ($("sw-terrain") as any).checked,

@@ -4,6 +4,10 @@
 export const BATIMENTS_URL =
   "https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/Batiments_3D_Paris/SceneServer/layers/0";
 
+/** Même jeu de bâtiments, en couche d'entités multipatch : c'est elle qui fournit les maillages 3D à l'export. */
+export const BATIMENTS_ENTITES_URL =
+  "https://services.arcgis.com/d3voDfTFbHOCRwVR/arcgis/rest/services/Batiments_3D_Paris/FeatureServer/0";
+
 /** Imagerie mondiale Esri (fond de carte public, sans clé d'API). */
 export const IMAGERIE_URL =
   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer";

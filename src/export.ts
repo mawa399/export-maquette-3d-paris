@@ -6,17 +6,18 @@ import type Extent from "@arcgis/core/geometry/Extent";
 import Point from "@arcgis/core/geometry/Point";
 import type Mesh from "@arcgis/core/geometry/Mesh";
 import type Ground from "@arcgis/core/Ground";
-import type SceneLayer from "@arcgis/core/layers/SceneLayer";
+import type FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import MeshLocalVertexSpace from "@arcgis/core/geometry/support/MeshLocalVertexSpace";
-import MeshGeoreferencedVertexSpace from "@arcgis/core/geometry/support/MeshGeoreferencedVertexSpace";
-import MeshMaterial from "@arcgis/core/geometry/support/MeshMaterial";
+import MeshMaterialMetallicRoughness from "@arcgis/core/geometry/support/MeshMaterialMetallicRoughness";
 import * as meshUtils from "@arcgis/core/geometry/support/meshUtils";
 import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator";
 import { COULEUR_TERRAIN, MAX_BATIMENTS, couleurBatiment, type ModeRendu } from "./config";
 
 export interface OptionsExport {
   zone: Polygon;
-  batiments: SceneLayer;
+  /** Couche d'entités multipatch (FeatureServer) des bâtiments 3D */
+  batiments: FeatureLayer;
   sol: Ground;
   mode: ModeRendu;
   avecTerrain: boolean;
@@ -33,12 +34,13 @@ export class ErreurExport extends Error {}
 
 export async function construireMaquette(o: OptionsExport): Promise<ResultatExport> {
   const { zone, batiments, sol, mode, avecTerrain, signal, progression } = o;
-  const sr = batiments.spatialReference;
+  // Tout est calculé en Web Mercator, le système de la vue et du terrain
+  const sr = SpatialReference.WebMercator;
 
-  // 1. Emprise de la zone dans le système de coordonnées de la couche de bâtiments
+  // 1. Emprise de la zone en Web Mercator
   if (!projectOperator.isLoaded()) await projectOperator.load();
   const emprise = (
-    zone.spatialReference.wkid === sr.wkid ? zone.extent : projectOperator.execute(zone.extent!, sr)
+    zone.spatialReference.isWebMercator ? zone.extent : projectOperator.execute(zone.extent!, sr)
   ) as Extent;
 
   // 2. Requête des bâtiments avec leur géométrie 3D (maillages)
@@ -47,6 +49,7 @@ export async function construireMaquette(o: OptionsExport): Promise<ResultatExpo
   requete.geometry = emprise;
   requete.spatialRelationship = "intersects";
   requete.returnGeometry = true;
+  requete.outSpatialReference = sr;
   requete.outFields = ["OBJECTID", "H_MAX", "Type_Toit"];
   const resultat = await batiments.queryFeatures(requete, { signal });
   const entites = resultat.features.filter((f) => f.geometry?.type === "mesh");
@@ -67,8 +70,7 @@ export async function construireMaquette(o: OptionsExport): Promise<ResultatExpo
     { signal },
   );
   const z = (altitude.geometry as Point).z ?? 0;
-  const EspaceSommets = sr.isWGS84 || sr.isWebMercator ? MeshLocalVertexSpace : MeshGeoreferencedVertexSpace;
-  const espace = new EspaceSommets({ origin: [centre.x, centre.y, z] });
+  const espace = new MeshLocalVertexSpace({ origin: [centre.x, centre.y, z] });
 
   // 4. Conversion de chaque bâtiment dans un repère local (en mètres), avec sa couleur
   progression?.(`Préparation de ${entites.length} bâtiments…`);
@@ -79,7 +81,7 @@ export async function construireMaquette(o: OptionsExport): Promise<ResultatExpo
       const couleur = couleurBatiment(f.attributes, mode);
       for (const c of m.components ?? []) {
         c.name = `batiment-${f.attributes.OBJECTID}`;
-        c.material = new MeshMaterial({ color: couleur });
+        c.material = new MeshMaterialMetallicRoughness({ color: couleur, metallic: 0, roughness: 0.85 });
       }
       return meshUtils.convertVertexSpace(m, espace, { signal });
     }),
@@ -94,7 +96,7 @@ export async function construireMaquette(o: OptionsExport): Promise<ResultatExpo
     });
     for (const c of terrain.components ?? []) {
       c.name = "terrain";
-      c.material = new MeshMaterial({ color: COULEUR_TERRAIN });
+      c.material = new MeshMaterialMetallicRoughness({ color: COULEUR_TERRAIN, metallic: 0, roughness: 1 });
     }
     maillages.push(await meshUtils.convertVertexSpace(terrain, espace, { signal }));
   }
