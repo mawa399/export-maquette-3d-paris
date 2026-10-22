@@ -2,6 +2,8 @@
 
 Application web 3D qui permet de **sélectionner un quartier de Paris et de télécharger sa maquette 3D** (bâtiments + terrain) au format **glTF binaire (.glb)**, directement depuis le navigateur.
 
+La maquette exportée est une **maquette volumétrique (LoD1)** : chaque bâtiment est extrudé à partir de son emprise au sol et de sa hauteur moyenne réelle, puis posé sur le terrain.
+
 Le fichier obtenu s'ouvre dans Blender, SketchUp, Rhino, Unity, three.js… Utile pour l'urbanisme, l'architecture, la visualisation ou l'impression 3D.
 
 **Démo en ligne :** https://mawa399.github.io/export-maquette-3d-paris/
@@ -24,17 +26,19 @@ Réalisé avec **ArcGIS Maps SDK for JavaScript 5.1** et le design system **Calc
 |---|---|
 | Tracé de la zone | `SketchViewModel` (outil rectangle, mode transformation) |
 | Statistiques instantanées | requête côté client `SceneLayerView.queryFeatures()`, `geodeticAreaOperator`, `Ground.queryElevation()` |
-| Récupération des bâtiments en 3D | `SceneLayer.queryFeatures()` avec `returnGeometry` → géométries `Mesh` |
+| Emprises et hauteurs des bâtiments | `FeatureLayer.queryFeatures()` sur le service d'entités (emprises `xyFootprint`, champs `H_MOY`, `H_MAX`) |
+| Altitude du sol sous chaque bâtiment | `Ground.queryElevation()` en une seule requête pour tous les sommets |
+| Extrusion des volumes (LoD1) | `meshUtils.createFromPolygon()` pour les toits + `Mesh` construit sommet par sommet pour les murs |
 | Extraction du terrain | `meshUtils.createFromElevation()` |
 | Passage en repère local (mètres) | `meshUtils.convertVertexSpace()` + `MeshLocalVertexSpace` centré sur la zone |
-| Couleurs | `MeshMaterial` appliqué à chaque composant de maillage |
+| Couleurs | `MeshMaterialMetallicRoughness` (PBR, opaque) appliqué à chaque composant |
 | Fusion et export | `meshUtils.merge()` puis `Mesh.toBinaryGLTF()` |
 
 Le code d'export est dans [`src/export.ts`](src/export.ts), l'interface dans [`src/main.ts`](src/main.ts).
 
 ## Données
 
-- **Bâtiments 3D** : couche de scène publique « Batiments_3D_Paris » publiée sur ArcGIS Online par Esri France (attributs : hauteurs, type de toit, arrondissement). Couverture : Paris intra-muros.
+- **Bâtiments 3D** : service public « Batiments_3D_Paris » publié sur ArcGIS Online par Esri France — couche de scène pour l'affichage, couche d'entités pour l'export (attributs : hauteurs, type de toit, arrondissement). Couverture : Paris intra-muros.
 - **Terrain** : World Elevation 3D (Esri)
 - **Imagerie** : World Imagery (Esri)
 
