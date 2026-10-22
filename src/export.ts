@@ -37,6 +37,21 @@ export class ErreurExport extends Error {}
 const materiau = (couleur: string, rugosite = 0.85) =>
   new MeshMaterialMetallicRoughness({ color: couleur, metallic: 0, roughness: rugosite, doubleSided: true });
 
+/** Duplique chaque triangle avec l'ordre de ses sommets inversé (face visible des deux côtés). */
+function deuxFaces(faces: ArrayLike<number>): Uint32Array {
+  const n = faces.length;
+  const out = new Uint32Array(n * 2);
+  for (let i = 0; i < n; i += 3) {
+    out[i] = faces[i];
+    out[i + 1] = faces[i + 1];
+    out[i + 2] = faces[i + 2];
+    out[n + i] = faces[i];
+    out[n + i + 1] = faces[i + 2];
+    out[n + i + 2] = faces[i + 1];
+  }
+  return out;
+}
+
 /**
  * Extrude une emprise au sol entre deux altitudes : murs + toit plat (niveau de détail LoD1).
  * Les sommets sont en coordonnées géoréférencées (Web Mercator, altitudes en mètres).
@@ -54,6 +69,11 @@ async function extruder(emprise: Polygon, base: number, sommet: number, couleur:
     }),
     { material: mat },
   );
+  // Les visionneuses glTF masquent souvent les faces vues de dos : on ajoute chaque triangle
+  // dans les deux sens pour que toit et murs soient visibles quel que soit l'angle de vue.
+  for (const c of toit.components ?? []) {
+    if (c.faces) c.faces = deuxFaces(c.faces);
+  }
 
   // Murs : deux triangles par arête de chaque anneau (extérieur et cours intérieures)
   const positions: number[] = [];
@@ -72,7 +92,7 @@ async function extruder(emprise: Polygon, base: number, sommet: number, couleur:
     spatialReference: sr,
     vertexSpace: new MeshGeoreferencedVertexSpace(),
     vertexAttributes: { position: new Float64Array(positions) },
-    components: [{ faces: new Uint32Array(faces), material: mat, shading: "flat" }],
+    components: [{ faces: deuxFaces(new Uint32Array(faces)), material: mat, shading: "flat" }],
   } as any);
 
   return [toit, murs];
