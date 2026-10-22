@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette 3D de Paris</title>
+    <meta
+      name="description"
+      content="Sélectionnez un quartier de Paris et téléchargez sa maquette 3D (bâtiments et terrain) au format glTF. ArcGIS Maps SDK for JavaScript."
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23171a21'/><path d='M6 26V14l6-4v16M14 26V8l6-3v21M22 26V12l4 2v12' fill='%23f6c46a'/></svg>" />
+  </head>
+  <body class="calcite-mode-dark">
+    <calcite-shell content-behind>
+      <header slot="header" class="entete">
+        <div class="titre">
+          <span class="logo" aria-hidden="true"></span>
+          <div>
+            <h1>Maquette 3D de Paris</h1>
+            <p>Sélectionnez un quartier, exportez-le en glTF</p>
+          </div>
+        </div>
+        <calcite-link href="https://github.com/mawa399/export-maquette-3d-paris" target="_blank" icon-start="code">
+          Code source
+        </calcite-link>
+      </header>
+
+      <calcite-shell-panel slot="panel-start" width="m" display-mode="float-content">
+        <calcite-panel>
+          <calcite-block heading="1. Choisir un lieu" expanded icon-start="pin">
+            <div id="lieux" class="lieux"></div>
+          </calcite-block>
+
+          <calcite-block heading="2. Délimiter la zone" expanded icon-start="rectangle">
+            <p class="aide">Cliquez puis faites glisser sur la carte pour tracer un rectangle. Vous pourrez ensuite le déplacer ou le redimensionner.</p>
+            <div class="boutons">
+              <calcite-button id="btn-dessiner" icon-start="rectangle" width="full">Tracer une zone</calcite-button>
+              <calcite-button id="btn-effacer" icon-start="trash" appearance="outline" kind="neutral" disabled>Effacer</calcite-button>
+            </div>
+            <div id="stats" class="stats" hidden>
+              <div class="chiffres">
+                <div><span id="st-bat">–</span><small>bâtiments</small></div>
+                <div><span id="st-surface">–</span><small>hectares</small></div>
+                <div><span id="st-hmax">–</span><small>haut. max (m)</small></div>
+                <div><span id="st-hmoy">–</span><small>haut. moy. (m)</small></div>
+              </div>
+              <dl>
+                <dt>Altitude du sol</dt><dd id="st-alt">–</dd>
+                <dt>Arrondissement(s)</dt><dd id="st-arr">–</dd>
+              </dl>
+              <div id="st-toits" class="toits"></div>
+            </div>
+            <calcite-notice id="notice-trop" kind="warning" icon width="full" hidden>
+              <div slot="message" id="notice-trop-texte"></div>
+            </calcite-notice>
+          </calcite-block>
+
+          <calcite-block heading="Rendu des bâtiments" expanded icon-start="palette">
+            <calcite-segmented-control id="mode" width="full" scale="s">
+              <calcite-segmented-control-item value="hauteur" checked>Hauteur</calcite-segmented-control-item>
+              <calcite-segmented-control-item value="toit">Type de toit</calcite-segmented-control-item>
+              <calcite-segmented-control-item value="blanc">Maquette</calcite-segmented-control-item>
+            </calcite-segmented-control>
+            <ul id="legende" class="legende"></ul>
+            <p class="aide">Les couleurs choisies ici sont reprises dans le fichier exporté.</p>
+          </calcite-block>
+
+          <calcite-block heading="3. Exporter" expanded icon-start="download">
+            <calcite-label layout="inline-space-between">
+              Inclure le terrain
+              <calcite-switch id="sw-terrain" checked></calcite-switch>
+            </calcite-label>
+            <calcite-button id="btn-exporter" icon-start="cube" width="full" disabled>Générer la maquette (.glb)</calcite-button>
+            <div id="progression" class="progression" hidden>
+              <calcite-progress type="indeterminate"></calcite-progress>
+              <span id="progression-texte"></span>
+            </div>
+            <div id="resultat" class="resultat" hidden>
+              <p id="resultat-texte"></p>
+              <div class="boutons">
+                <calcite-button id="btn-apercu" icon-start="view-visible" appearance="outline" width="full">Aperçu 3D</calcite-button>
+                <calcite-button id="btn-telecharger" icon-start="download" width="full">Télécharger</calcite-button>
+              </div>
+            </div>
+            <calcite-notice id="notice-erreur" kind="danger" icon width="full" hidden>
+              <div slot="message" id="notice-erreur-texte"></div>
+            </calcite-notice>
+          </calcite-block>
+
+          <footer class="credits">
+            Bâtiments : couche « Batiments_3D_Paris » (Esri France, ArcGIS Online) · Terrain et imagerie : Esri ·
+            Réalisé avec ArcGIS Maps SDK for JavaScript et Calcite — Mawa Diaw
+          </footer>
+        </calcite-panel>
+      </calcite-shell-panel>
+
+      <div id="vue"></div>
+    </calcite-shell>
+
+    <calcite-dialog id="dialog-apercu" heading="Aperçu de la maquette" width="l" modal>
+      <div id="apercu" class="apercu"></div>
+      <calcite-button slot="footer-end" id="btn-telecharger-2" icon-start="download">Télécharger</calcite-button>
+    </calcite-dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

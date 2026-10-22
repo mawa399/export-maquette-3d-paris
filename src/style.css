@@ -1,0 +1,209 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #12141a;
+  font-family: var(--calcite-font-family, "Avenir Next", system-ui, sans-serif);
+}
+
+#vue {
+  position: absolute;
+  inset: 0;
+}
+
+/* En-tête */
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: rgba(18, 20, 26, 0.92);
+  border-bottom: 1px solid #2b2f3a;
+  color: #f2f2f2;
+}
+.titre {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.titre h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.titre p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #a8adb8;
+}
+.logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background:
+    linear-gradient(#f6c46a, #f6c46a) 5px 10px / 5px 14px no-repeat,
+    linear-gradient(#ee8a48, #ee8a48) 12px 4px / 5px 20px no-repeat,
+    linear-gradient(#d4504c, #d4504c) 19px 8px / 5px 16px no-repeat,
+    #22262f;
+}
+
+/* Panneau */
+.aide {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--calcite-color-text-3);
+}
+.boutons {
+  display: flex;
+  gap: 0.5rem;
+}
+.lieux {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Statistiques */
+.stats {
+  margin-top: 1rem;
+}
+.chiffres {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.chiffres div {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.4rem;
+  border-radius: 6px;
+  background: var(--calcite-color-foreground-2);
+  text-align: center;
+}
+.chiffres span {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--calcite-color-text-1);
+  font-variant-numeric: tabular-nums;
+}
+.chiffres small {
+  font-size: 0.68rem;
+  color: var(--calcite-color-text-3);
+}
+.stats dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0.8rem 0;
+  font-size: 0.8rem;
+}
+.stats dt {
+  color: var(--calcite-color-text-3);
+}
+.stats dd {
+  margin: 0;
+  color: var(--calcite-color-text-1);
+  text-align: right;
+}
+.toits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--calcite-color-text-2);
+}
+.toit-ligne {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+.toit-barre {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--calcite-color-foreground-3);
+  overflow: hidden;
+}
+.toit-barre i {
+  display: block;
+  height: 100%;
+}
+.toit-ligne b {
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Légende */
+.legende {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--calcite-color-text-2);
+}
+.legende li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.legende i {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Export */
+calcite-label {
+  margin-bottom: 0.5rem;
+}
+.progression {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--calcite-color-text-2);
+}
+.progression span {
+  display: block;
+  margin-top: 0.4rem;
+}
+.resultat {
+  margin-top: 0.75rem;
+}
+.resultat p {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--calcite-color-text-2);
+}
+calcite-notice {
+  margin-top: 0.75rem;
+}
+
+.credits {
+  padding: 0.75rem 1rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--calcite-color-text-3);
+}
+
+/* Aperçu */
+.apercu,
+.apercu model-viewer {
+  width: 100%;
+  height: 60vh;
+  background: radial-gradient(circle at 50% 40%, #2a2f3a, #12141a);
+  border-radius: 6px;
+}
+
+@media (max-width: 600px) {
+  .titre p,
+  .entete calcite-link {
+    display: none;
+  }
+}

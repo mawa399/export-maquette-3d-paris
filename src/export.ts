@@ -1,0 +1,112 @@
+// Construction de la maquette 3D : bâtiments + terrain fusionnés, puis export glTF binaire (.glb).
+// Méthode inspirée de l'application « City Download Portal » d'Esri (Apache 2.0).
+
+import type Polygon from "@arcgis/core/geometry/Polygon";
+import type Extent from "@arcgis/core/geometry/Extent";
+import Point from "@arcgis/core/geometry/Point";
+import type Mesh from "@arcgis/core/geometry/Mesh";
+import type Ground from "@arcgis/core/Ground";
+import type SceneLayer from "@arcgis/core/layers/SceneLayer";
+import MeshLocalVertexSpace from "@arcgis/core/geometry/support/MeshLocalVertexSpace";
+import MeshGeoreferencedVertexSpace from "@arcgis/core/geometry/support/MeshGeoreferencedVertexSpace";
+import MeshMaterial from "@arcgis/core/geometry/support/MeshMaterial";
+import * as meshUtils from "@arcgis/core/geometry/support/meshUtils";
+import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator";
+import { COULEUR_TERRAIN, MAX_BATIMENTS, couleurBatiment, type ModeRendu } from "./config";
+
+export interface OptionsExport {
+  zone: Polygon;
+  batiments: SceneLayer;
+  sol: Ground;
+  mode: ModeRendu;
+  avecTerrain: boolean;
+  signal?: AbortSignal;
+  progression?: (message: string) => void;
+}
+
+export interface ResultatExport {
+  fichier: Blob;
+  nbBatiments: number;
+}
+
+export class ErreurExport extends Error {}
+
+export async function construireMaquette(o: OptionsExport): Promise<ResultatExport> {
+  const { zone, batiments, sol, mode, avecTerrain, signal, progression } = o;
+  const sr = batiments.spatialReference;
+
+  // 1. Emprise de la zone dans le système de coordonnées de la couche de bâtiments
+  if (!projectOperator.isLoaded()) await projectOperator.load();
+  const emprise = (
+    zone.spatialReference.wkid === sr.wkid ? zone.extent : projectOperator.execute(zone.extent!, sr)
+  ) as Extent;
+
+  // 2. Requête des bâtiments avec leur géométrie 3D (maillages)
+  progression?.("Récupération des bâtiments…");
+  const requete = batiments.createQuery();
+  requete.geometry = emprise;
+  requete.spatialRelationship = "intersects";
+  requete.returnGeometry = true;
+  requete.outFields = ["OBJECTID", "H_MAX", "Type_Toit"];
+  const resultat = await batiments.queryFeatures(requete, { signal });
+  const entites = resultat.features.filter((f) => f.geometry?.type === "mesh");
+
+  if (entites.length > MAX_BATIMENTS) {
+    throw new ErreurExport(
+      `La zone contient ${entites.length} bâtiments (maximum ${MAX_BATIMENTS}). Réduisez la zone.`,
+    );
+  }
+  if (entites.length === 0 && !avecTerrain) {
+    throw new ErreurExport("Aucun bâtiment dans la zone. Activez le terrain ou déplacez la zone.");
+  }
+
+  // 3. Origine du modèle : centre de la zone, à l'altitude du sol
+  const centre = emprise.center!;
+  const altitude = await sol.queryElevation(
+    new Point({ x: centre.x, y: centre.y, spatialReference: sr }),
+    { signal },
+  );
+  const z = (altitude.geometry as Point).z ?? 0;
+  const EspaceSommets = sr.isWGS84 || sr.isWebMercator ? MeshLocalVertexSpace : MeshGeoreferencedVertexSpace;
+  const espace = new EspaceSommets({ origin: [centre.x, centre.y, z] });
+
+  // 4. Conversion de chaque bâtiment dans un repère local (en mètres), avec sa couleur
+  progression?.(`Préparation de ${entites.length} bâtiments…`);
+  const maillages: Mesh[] = await Promise.all(
+    entites.map(async (f) => {
+      const m = f.geometry as Mesh;
+      await m.load();
+      const couleur = couleurBatiment(f.attributes, mode);
+      for (const c of m.components ?? []) {
+        c.name = `batiment-${f.attributes.OBJECTID}`;
+        c.material = new MeshMaterial({ color: couleur });
+      }
+      return meshUtils.convertVertexSpace(m, espace, { signal });
+    }),
+  );
+
+  // 5. Terrain extrait du modèle numérique de terrain
+  if (avecTerrain) {
+    progression?.("Extraction du terrain…");
+    const terrain = await meshUtils.createFromElevation(sol, emprise, {
+      demResolution: "finest-contiguous",
+      signal,
+    });
+    for (const c of terrain.components ?? []) {
+      c.name = "terrain";
+      c.material = new MeshMaterial({ color: COULEUR_TERRAIN });
+    }
+    maillages.push(await meshUtils.convertVertexSpace(terrain, espace, { signal }));
+  }
+
+  // 6. Fusion et export en glTF binaire
+  progression?.("Fusion et export glTF…");
+  const maquette = meshUtils.merge(maillages);
+  if (!maquette) throw new ErreurExport("La fusion des maillages a échoué.");
+  const tampon = await maquette.toBinaryGLTF();
+
+  return {
+    fichier: new Blob([tampon], { type: "model/gltf-binary" }),
+    nbBatiments: entites.length,
+  };
+}
